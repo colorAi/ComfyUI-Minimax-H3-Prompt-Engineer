@@ -1,0 +1,18 @@
+[project]
+name = "comfyui-minimax-h3-prompt-engineer"
+version = "0.2.1"
+description = "Generate validated MiniMax H3 video prompt documents through RunningHub LLM API."
+requires-python = ">=3.10"
+dependencies = [
+  "certifi>=2024.2.2",
+]
+
+[project.urls]
+Repository = "https://github.com/colorAi/ComfyUI-Minimax-H3-Prompt-Engineer"
+"Bug Tracker" = "https://github.com/colorAi/ComfyUI-Minimax-H3-Prompt-Engineer/issues"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["N999"]

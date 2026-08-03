@@ -1,0 +1,127 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "H3CreativePresets",
+      "pos": [80, 120],
+      "size": [350, 570],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "creative_presets",
+          "type": "H3_CREATIVE_PRESET",
+          "links": [1],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "H3CreativePresets"
+      },
+      "widgets_values": [
+        "Cinematic Live-action",
+        "Urban Street",
+        "Rain",
+        "Neon Night",
+        "Auto",
+        "Auto",
+        "Auto",
+        "Default (omit amplitude)",
+        "Default (omit speed)",
+        "Multi-shot Narrative",
+        "Realistic Detailed",
+        "No Music",
+        "Preserve wet-street reflections and spatial continuity across all cuts."
+      ]
+    },
+    {
+      "id": 2,
+      "type": "MinimaxH3PromptEngineerRunningHub",
+      "pos": [530, 120],
+      "size": [470, 760],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "creative_presets",
+          "type": "H3_CREATIVE_PRESET",
+          "link": 1
+        },
+        {
+          "name": "first_frame",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "last_frame",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "reference_images",
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "formatted_prompt",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "validation_report",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "raw_response",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 2
+        },
+        {
+          "name": "usage_json",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MinimaxH3PromptEngineerRunningHub"
+      },
+      "widgets_values": [
+        "",
+        "RunningHub Global (.ai)",
+        "qwen/qwen3.6-plus",
+        "",
+        "T2VA · Text to Audiovisual",
+        "8秒写实电影风格。镜头1：雨夜街道，一个女人撑伞走向出租车，镜头缓慢跟随。镜头2：3秒切到车内近景，她收起雨伞，看向窗外并说‘我们走吧’。镜头3：6秒切到车外，出租车驶离，固定镜头。只有环境音，不要音乐。",
+        8.0,
+        "",
+        0.2,
+        0.9,
+        4096,
+        "none",
+        120,
+        1536,
+        true,
+        true
+      ]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "H3_CREATIVE_PRESET"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

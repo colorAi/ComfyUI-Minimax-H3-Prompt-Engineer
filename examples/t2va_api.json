@@ -1,0 +1,45 @@
+{
+  "1": {
+    "class_type": "H3CreativePresets",
+    "inputs": {
+      "visual_style": "Cinematic Live-action",
+      "environment": "Urban Street",
+      "time_weather": "Rain",
+      "lighting": "Neon Night",
+      "shot_size": "Auto",
+      "camera_angle": "Auto",
+      "camera_motion": "Auto",
+      "motion_amplitude": "Default (omit amplitude)",
+      "motion_speed": "Default (omit speed)",
+      "shot_structure": "Multi-shot Narrative",
+      "soundscape": "Realistic Detailed",
+      "music": "No Music",
+      "custom_instructions": "Preserve wet-street reflections and spatial continuity across all cuts."
+    }
+  },
+  "2": {
+    "class_type": "MinimaxH3PromptEngineerRunningHub",
+    "inputs": {
+      "runninghub_api_key": "",
+      "runninghub_site": "RunningHub Global (.ai)",
+      "model": "qwen/qwen3.6-plus",
+      "custom_model": "",
+      "task_mode": "T2VA · Text to Audiovisual",
+      "user_request": "8秒写实电影风格。镜头1：雨夜街道，一个女人撑伞走向出租车，镜头缓慢跟随。镜头2：3秒切到车内近景，她收起雨伞，看向窗外并说‘我们走吧’。镜头3：6秒切到车外，出租车驶离，固定镜头。只有环境音，不要音乐。",
+      "duration_seconds": 8.0,
+      "reference_context": "",
+      "temperature": 0.2,
+      "top_p": 0.9,
+      "max_tokens": 4096,
+      "reasoning_effort": "none",
+      "timeout_seconds": 120,
+      "image_max_side": 1536,
+      "auto_repair": true,
+      "strict_validation": true,
+      "creative_presets": [
+        "1",
+        0
+      ]
+    }
+  }
+}
