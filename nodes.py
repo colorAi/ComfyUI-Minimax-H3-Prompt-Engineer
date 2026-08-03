@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 colorAi
+
 """ComfyUI nodes for MiniMax H3 prompt engineering through RunningHub."""
 
 from __future__ import annotations

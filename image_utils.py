@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 colorAi
+
 """Conversion helpers for ComfyUI IMAGE tensors and OpenAI image_url parts."""
 
 from __future__ import annotations

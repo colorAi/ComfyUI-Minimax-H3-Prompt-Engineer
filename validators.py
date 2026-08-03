@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 colorAi
+
 """Deterministic structural validators for MiniMax H3 prompt documents."""
 
 from __future__ import annotations

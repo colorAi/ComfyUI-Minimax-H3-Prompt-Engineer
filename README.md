@@ -4,7 +4,7 @@
 
 A production-oriented ComfyUI extension that converts short Chinese or English creative briefs into structured, validated English prompts for **MiniMax H3 video generation**. It uses the RunningHub OpenAI-compatible LLM API and supports multi-shot timelines, keyframe-guided generation, full-reference workflows, creative presets, and automatic format repair.
 
-> Current version: `0.2.1`
+> Current version: `0.2.2`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
 ## Highlights
@@ -233,6 +233,14 @@ python -m unittest discover -s tests -v
 
 The tests cover API response parsing, site-isolated model caching, task modes, multimodal message construction, response cleaning, structural validation, and automatic repair.
 
+## License
+
+Copyright (C) 2026 colorAi.
+
+This project is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE). Commercial use is permitted. Redistributions must retain the copyright and license notices and comply with the AGPL source-code requirements. If a modified version is made available for users to interact with over a network, those users must be offered the corresponding source code as required by AGPL-3.0.
+
+Closed-source commercial redistribution or modified network deployment requires separate permission from the copyright holder. The license applies to the project materials for which the copyright holder has licensing rights; third-party trademarks, services, models, and media remain subject to their respective terms.
+
 ## Disclaimer
 
 This is an independent ComfyUI extension and is not an official MiniMax or RunningHub product. Model availability, pricing, registration rewards, API permissions, and service behavior are governed by the respective platforms and may change without notice.
@@ -242,5 +250,4 @@ This is an independent ComfyUI extension and is not an official MiniMax or Runni
 
 
 https://github.com/user-attachments/assets/20d196d2-1eab-41c3-8f69-76116d52e6ca
-
 

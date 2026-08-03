@@ -1,8 +1,9 @@
 [project]
 name = "comfyui-minimax-h3-prompt-engineer"
-version = "0.2.1"
+version = "0.2.2"
 description = "Generate validated MiniMax H3 video prompt documents through RunningHub LLM API."
 requires-python = ">=3.10"
+license = { file = "LICENSE" }
 dependencies = [
   "certifi>=2024.2.2",
 ]

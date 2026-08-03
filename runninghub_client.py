@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 colorAi
+
 """Small dependency-free client for RunningHub's OpenAI-compatible LLM API."""
 
 from __future__ import annotations
@@ -160,7 +163,7 @@ class RunningHubClient:
 
         headers = {
             "Accept": "application/json",
-            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.2.1",
+            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.2.2",
         }
         data = None
         if payload is not None:

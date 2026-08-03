@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 colorAi
+
 import { app } from "../../scripts/app.js";
 
 const NODE_TYPE = "MinimaxH3PromptEngineerRunningHub";
