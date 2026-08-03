@@ -236,3 +236,11 @@ The tests cover API response parsing, site-isolated model caching, task modes, m
 ## Disclaimer
 
 This is an independent ComfyUI extension and is not an official MiniMax or RunningHub product. Model availability, pricing, registration rewards, API permissions, and service behavior are governed by the respective platforms and may change without notice.
+
+<img width="2324" height="1594" alt="ScreenShot_2026-08-03_155337_450" src="https://github.com/user-attachments/assets/377fde29-cfd1-420f-99d6-5836f7fd9cea" />
+
+
+
+https://github.com/user-attachments/assets/20d196d2-1eab-41c3-8f69-76116d52e6ca
+
+
