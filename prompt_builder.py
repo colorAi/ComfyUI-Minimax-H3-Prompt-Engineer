@@ -13,11 +13,11 @@ from typing import Any
 try:
     from .image_utils import image_url_part
     from .presets import CreativePresets
-    from .templates import DEFAULT_TEMPLATE, template_brief
+    from .templates import DEFAULT_TEMPLATE, REQUEST_LEVEL_BASIC, template_context
 except ImportError:  # Allows direct imports in local tests.
     from image_utils import image_url_part
     from presets import CreativePresets
-    from templates import DEFAULT_TEMPLATE, template_brief
+    from templates import DEFAULT_TEMPLATE, REQUEST_LEVEL_BASIC, template_context
 
 
 MODE_T2VA = "T2VA · Text to Audiovisual"
@@ -101,12 +101,16 @@ def _mode_contract(code: str, duration: float) -> str:
 
 
 @lru_cache(maxsize=64)
-def build_system_prompt(mode: str, template: str = DEFAULT_TEMPLATE) -> str:
+def build_system_prompt(
+    mode: str,
+    template: str = DEFAULT_TEMPLATE,
+    request_level: str = REQUEST_LEVEL_BASIC,
+) -> str:
     code = mode_code(mode)
     guide_text = get_base_guide()
     if code == "FULL_REFERENCE":
         guide_text += "\n\n--- FULL-REFERENCE GUIDE ---\n\n" + get_reference_guide()
-    creative_direction = template_brief(template)
+    creative_direction = template_context(template, request_level)
 
     return f"""You are Minimax H3 Prompt Engineer, a strict professional rewrite engine.
 
@@ -123,7 +127,9 @@ Non-negotiable behavior:
 8. Check the complete answer against the required format before returning it.
 
 Selected creative template: {template}
-Creative direction: {creative_direction}
+Template request level: {request_level}
+Creative direction and production rules:
+{creative_direction}
 Apply this direction only where the user's explicit request and reference-retention requirements leave room for creative judgment. It never changes the required H3 output schema.
 
 The authoritative writing guide follows:
@@ -144,6 +150,7 @@ def build_user_content(
     reference_images: list[ReferenceImage] | None = None,
     image_max_side: int = 1536,
     template: str = DEFAULT_TEMPLATE,
+    request_level: str = REQUEST_LEVEL_BASIC,
 ) -> str | list[dict[str, Any]]:
     code = mode_code(mode)
     presets = CreativePresets.from_value(presets)
@@ -154,6 +161,7 @@ def build_user_content(
         f"Task mode: {code}",
         f"Effective target video duration: {duration:.2f} seconds",
         f"Selected creative template: {template}",
+        f"Template request level: {request_level}",
         _mode_contract(code, duration),
     ]
     if constraints:
@@ -189,8 +197,9 @@ def build_user_content(
 def build_messages(**kwargs: Any) -> list[dict[str, Any]]:
     mode = kwargs["mode"]
     template = kwargs.get("template", DEFAULT_TEMPLATE)
+    request_level = kwargs.get("request_level", REQUEST_LEVEL_BASIC)
     return [
-        {"role": "system", "content": build_system_prompt(mode, template)},
+        {"role": "system", "content": build_system_prompt(mode, template, request_level)},
         {"role": "user", "content": build_user_content(**kwargs)},
     ]
 
@@ -202,6 +211,7 @@ def build_repair_messages(
     previous_response: str,
     validation_report: str,
     template: str = DEFAULT_TEMPLATE,
+    request_level: str = REQUEST_LEVEL_BASIC,
 ) -> list[dict[str, Any]]:
     code = mode_code(mode)
     repair_request = f"""The previous response failed deterministic MiniMax H3 format validation.
@@ -220,6 +230,22 @@ Previous response:
 Correct every listed error while preserving all scene content, dialogue, lyrics, visible text, reference identities, shot intent, and valid timestamps. Return only the corrected finished prompt document.
 """
     return [
-        {"role": "system", "content": build_system_prompt(mode, template)},
+        {"role": "system", "content": build_system_prompt(mode, template, request_level)},
         {"role": "user", "content": repair_request},
+    ]
+
+
+def build_translation_messages(prompt: str) -> list[dict[str, str]]:
+    return [
+        {
+            "role": "system",
+            "content": (
+                "Translate the supplied MiniMax H3 prompt into Simplified Chinese for human display. "
+                "Keep all schema field names, [Shot N] markers, timestamps, <Subject N>/<Picture N>/<Video N>/"
+                "<Audio N> labels, retention markers, and <d>[Language]...</d> blocks exactly unchanged. "
+                "Preserve user-supplied dialogue, lyrics, brand text, and visible text verbatim. Translate all other "
+                "descriptive prose accurately and completely. Output only the translated prompt document."
+            ),
+        },
+        {"role": "user", "content": prompt},
     ]

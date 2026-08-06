@@ -4,7 +4,7 @@
 
 A production-oriented ComfyUI extension that converts short Chinese or English creative briefs into structured, validated English prompts for **MiniMax H3 video generation**. It supports RunningHub, OpenAI, local OpenAI-compatible models, selectable creative templates, and a unified node that reuses ComfyUI's official MiniMax H3 conditioning implementation so every reference asset is connected only once.
 
-> Current version: `0.3.0`
+> Current version: `0.4.0`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
 ## Highlights
@@ -17,6 +17,9 @@ A production-oriented ComfyUI extension that converts short Chinese or English c
 - Resolves `@图像1`, `@视频1`, `@视频音频1`, and `@音频1` aliases with deterministic bounds and pairing validation.
 - Supports RunningHub, OpenAI, local OpenAI-compatible servers, and a no-LLM Direct mode.
 - Includes nine selectable creative directions distilled from the official MiniMax H3 skills.
+- Offers Basic, Medium, and Full template-context levels to trade request size for production detail.
+- Keeps the validated H3 execution prompt in official English while optionally returning a Simplified Chinese display translation.
+- Shows connected materials in an autocomplete menu when the user types `@` in `user_request`.
 - Converts simple shot descriptions into sequential `[Shot N]` blocks with valid cut timestamps.
 - Accepts first-frame, last-frame, and multiple reference-image inputs.
 - Provides structured presets for style, environment, lighting, framing, camera movement, sound, and music.
@@ -44,6 +47,23 @@ This unified node combines prompt rewriting, validation, and ComfyUI's official 
 
 It infers the H3 task from connected materials, expands friendly `@asset` aliases, generates and validates the prompt through the selected provider, and passes the final prompt plus the exact same normalized assets into the official H3 implementation. It returns `positive`, `latent`, the formatted prompt, validation report, raw LLM response, and usage metadata.
 
+#### Request depth
+
+| `request_level` | Included context |
+| --- | --- |
+| `Basic · 基础` | Short creative direction only; smallest request |
+| `Medium · 中度` | Template-specific rules plus shot, continuity, audio, and quality requirements |
+| `Full · 完整` | A complete single-request production rule set covering beats, shots, visual system, motion, camera, audio, text, reference retention, and final checks |
+
+Full mode is a runtime-oriented equivalent of the useful production guidance, not a verbatim redistribution of upstream `SKILL.md` files. Agent-only canvas tools, file operations, and multi-round confirmation steps are omitted. Full mode materially increases context size and token use.
+
+#### Display language
+
+- `English · H3 native` returns the validated English prompt in both `formatted_prompt` and `display_prompt` without another call.
+- `简体中文 · Display translation` makes one additional call to the selected provider after validation and returns the reading translation in `display_prompt`.
+- `formatted_prompt` always remains the official English prompt actually sent to MiniMax H3, so translation cannot break its schema or alignment contract.
+- Direct mode performs no AI calls and therefore cannot create a Chinese translation.
+
 Available providers:
 
 | Provider | Behavior |
@@ -67,6 +87,8 @@ Provider API keys may be serialized into ComfyUI workflow JSON. Clear them befor
 
 #### Safe `@asset` references
 
+After materials are connected, typing `@` in `user_request` opens an autocomplete menu containing the available aliases, native H3 labels, material types, and upstream node names. Continue typing to filter, then use the arrow keys and Enter/Tab to insert a selection.
+
 | User alias | H3 label | Connected material |
 | --- | --- | --- |
 | `@图像1` / `@image1` | `<Picture 1>` | First connected reference image |
@@ -80,7 +102,7 @@ Full Reference inputs cannot be mixed with `first_frame` / `last_frame`, because
 
 #### Templates and multimodal behavior
 
-The template dropdown includes General, 3D Animation Short, Brand Promo, Co-op Game Intro, Hand-drawn Live, Minimalist Product Ad, MV Subtitle, Paper Collage Explainer, and Papercraft Stop Motion. These are concise single-request directions distilled from the official MiniMax H3 skills in the local `MiniMax-H3/skills` repository; the bundled official writing guides remain authoritative for the output schema.
+The template dropdown includes General, 3D Animation Short, Brand Promo, Co-op Game Intro, Hand-drawn Live, Minimalist Product Ad, MV Subtitle, Paper Collage Explainer, and Papercraft Stop Motion. These are single-request directions and equivalent production rules organized from the official MiniMax H3 workflow concepts; upstream `SKILL.md` files are not copied verbatim. The bundled official writing guides remain authoritative for the output schema.
 
 The prompt LLM receives reference images and at most three uniformly sampled frames from each reference video. The complete connected video batch is passed to the official MiniMax H3 node, which then applies its own target-length truncation and `17k+5` frame alignment before encoding. For broad Chat Completions compatibility, audio binary data is not sent to the prompt LLM; it receives labels, duration metadata, and the user's `reference_context`, while the complete audio is passed to MiniMax H3.
 

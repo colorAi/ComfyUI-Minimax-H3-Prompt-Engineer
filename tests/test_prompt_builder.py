@@ -9,8 +9,14 @@ import numpy as np
 
 from image_utils import image_tensor_to_data_url
 from presets import CreativePresets
-from prompt_builder import MODE_FL2VA, MODE_T2VA, ReferenceImage, build_messages
-from templates import PROMPT_TEMPLATES
+from prompt_builder import MODE_FL2VA, MODE_T2VA, ReferenceImage, build_messages, build_translation_messages
+from templates import (
+    PROMPT_TEMPLATES,
+    REQUEST_LEVEL_BASIC,
+    REQUEST_LEVEL_FULL,
+    REQUEST_LEVEL_MEDIUM,
+    template_context,
+)
 
 
 class PromptBuilderTests(unittest.TestCase):
@@ -67,6 +73,25 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn(template, messages[0]["content"])
         self.assertIn("restrained product-ad language", messages[0]["content"])
         self.assertIn(template, messages[1]["content"])
+
+    def test_request_levels_add_progressively_more_runtime_guidance(self) -> None:
+        template = "Papercraft Stop Motion · 纸艺定格"
+        basic = template_context(template, REQUEST_LEVEL_BASIC)
+        medium = template_context(template, REQUEST_LEVEL_MEDIUM)
+        full = template_context(template, REQUEST_LEVEL_FULL)
+        self.assertLess(len(basic), len(medium))
+        self.assertLess(len(medium), len(full))
+        self.assertIn("production-ready H3 prompt", medium)
+        self.assertIn("Final quality control", full)
+        self.assertIn("visible folds", full)
+
+    def test_translation_prompt_preserves_h3_contract_tokens(self) -> None:
+        messages = build_translation_messages("integrated_multimodal_description: [Shot 1] Test")
+        system = messages[0]["content"]
+        self.assertIn("Simplified Chinese", system)
+        self.assertIn("schema field names", system)
+        self.assertIn("<Picture N>", system)
+        self.assertEqual(messages[1]["role"], "user")
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ try:
         ReferenceImage,
         build_messages,
         build_repair_messages,
+        build_translation_messages,
         mode_code,
     )
     from .runninghub_client import (
@@ -41,7 +42,7 @@ try:
         RunningHubClient,
         RunningHubError,
     )
-    from .templates import DEFAULT_TEMPLATE, PROMPT_TEMPLATES
+    from .templates import DEFAULT_TEMPLATE, PROMPT_TEMPLATES, REQUEST_LEVELS
     from .validators import clean_model_response, validate_prompt
 except ImportError:  # Allows direct loading when ComfyUI imports custom modules unusually.
     from asset_refs import AssetBundle, keyframe_bundle
@@ -64,6 +65,7 @@ except ImportError:  # Allows direct loading when ComfyUI imports custom modules
         ReferenceImage,
         build_messages,
         build_repair_messages,
+        build_translation_messages,
         mode_code,
     )
     from runninghub_client import (
@@ -73,7 +75,7 @@ except ImportError:  # Allows direct loading when ComfyUI imports custom modules
         RunningHubClient,
         RunningHubError,
     )
-    from templates import DEFAULT_TEMPLATE, PROMPT_TEMPLATES
+    from templates import DEFAULT_TEMPLATE, PROMPT_TEMPLATES, REQUEST_LEVELS
     from validators import clean_model_response, validate_prompt
 
 
@@ -83,6 +85,10 @@ PROVIDER_RUNNINGHUB = "RunningHub"
 PROVIDER_OPENAI = "OpenAI"
 PROVIDER_LOCAL = "Local OpenAI-compatible"
 PROVIDER_DIRECT = "Direct · Prompt already formatted"
+
+DISPLAY_LANGUAGE_ENGLISH = "English · H3 native"
+DISPLAY_LANGUAGE_CHINESE = "简体中文 · Display translation"
+DISPLAY_LANGUAGES = [DISPLAY_LANGUAGE_ENGLISH, DISPLAY_LANGUAGE_CHINESE]
 
 
 class MinimaxH3PromptStudio(io.ComfyNode):
@@ -143,6 +149,13 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                     tooltip="Only the settings needed by the selected provider are shown.",
                 ),
                 io.Combo.Input("prompt_template", options=PROMPT_TEMPLATES, default=DEFAULT_TEMPLATE),
+                io.Combo.Input("request_level", options=REQUEST_LEVELS, default=REQUEST_LEVELS[0]),
+                io.Combo.Input(
+                    "display_language",
+                    options=DISPLAY_LANGUAGES,
+                    default=DISPLAY_LANGUAGE_ENGLISH,
+                    tooltip="H3 always receives the official English prompt; Chinese adds a translated display output.",
+                ),
                 io.Combo.Input("task_mode", options=[MODE_AUTO, *TASK_MODES], default=MODE_AUTO),
                 io.String.Input(
                     "user_request",
@@ -242,6 +255,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 io.String.Output("validation_report"),
                 io.String.Output("raw_response"),
                 io.String.Output("usage_json"),
+                io.String.Output("display_prompt"),
             ],
         )
 
@@ -365,6 +379,8 @@ class MinimaxH3PromptStudio(io.ComfyNode):
         alias_plan: AssetBundle,
         mode: str,
         prompt_template: str,
+        request_level: str,
+        display_language: str,
         user_request: str,
         duration: float,
         reference_context: str,
@@ -377,7 +393,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
         reasoning_effort: str,
         auto_repair: bool,
         strict_validation: bool,
-    ) -> tuple[str, str, str, str]:
+    ) -> tuple[str, str, str, str, str]:
         calls: list[dict[str, Any]] = []
         raw_outputs: dict[str, str] = {}
 
@@ -394,6 +410,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 reference_images=vision_references,
                 image_max_side=image_max_side,
                 template=prompt_template,
+                request_level=request_level,
             )
             try:
                 initial = client.chat(
@@ -418,6 +435,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                             previous_response=formatted,
                             validation_report=validation.report(),
                             template=prompt_template,
+                            request_level=request_level,
                         ),
                         max_tokens=max_tokens,
                         temperature=0.0,
@@ -434,10 +452,34 @@ class MinimaxH3PromptStudio(io.ComfyNode):
         report = validation.report()
         if strict_validation and not validation.is_valid:
             raise ValueError(f"{provider} produced a prompt that fails strict H3 validation:\n{report}")
+
+        display_prompt = formatted
+        if display_language == DISPLAY_LANGUAGE_CHINESE:
+            if provider == PROVIDER_DIRECT:
+                raise ValueError("Chinese display translation requires an AI provider; Direct mode makes no AI calls")
+            try:
+                translation = client.chat(
+                    model=model,
+                    messages=build_translation_messages(formatted),
+                    max_tokens=max_tokens,
+                    temperature=0.0,
+                    top_p=1.0,
+                    reasoning_effort="none",
+                )
+            except (RunningHubError, CompatibleAPIError) as exc:
+                raise RuntimeError(exc.user_message()) from exc
+            calls.append(cls._usage_entry(translation, "translation"))
+            raw_outputs["translation_response"] = translation.content
+            display_prompt = translation.content.strip()
+        elif display_language != DISPLAY_LANGUAGE_ENGLISH:
+            raise ValueError(f"Unsupported display language: {display_language}")
+
         usage = {
             "provider": provider,
             "selected_model": model,
             "task_mode": mode_code(mode),
+            "request_level": request_level,
+            "display_language": display_language,
             "effective_duration_seconds": duration,
             **provider_metadata,
             "calls": calls,
@@ -447,6 +489,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
             report,
             json.dumps(raw_outputs, ensure_ascii=False, indent=2),
             json.dumps(usage, ensure_ascii=False, indent=2),
+            display_prompt,
         )
 
     @classmethod
@@ -456,6 +499,8 @@ class MinimaxH3PromptStudio(io.ComfyNode):
         vae: Any,
         ai_provider: dict[str, Any],
         prompt_template: str,
+        request_level: str,
+        display_language: str,
         task_mode: str,
         user_request: str,
         width: int,
@@ -529,7 +574,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
             ai_provider,
             timeout_seconds=timeout_seconds,
         )
-        formatted, report, raw_response, usage_json = cls._engineer_prompt(
+        formatted, report, raw_response, usage_json, display_prompt = cls._engineer_prompt(
             provider=provider,
             client=client,
             model=model,
@@ -537,6 +582,8 @@ class MinimaxH3PromptStudio(io.ComfyNode):
             alias_plan=alias_plan,
             mode=mode,
             prompt_template=prompt_template,
+            request_level=request_level,
+            display_language=display_language,
             user_request=resolved_request,
             duration=duration,
             reference_context=combined_context,
@@ -577,4 +624,4 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 last_frame,
             )
         positive, latent = generated.result
-        return io.NodeOutput(positive, latent, formatted, report, raw_response, usage_json)
+        return io.NodeOutput(positive, latent, formatted, report, raw_response, usage_json, display_prompt)

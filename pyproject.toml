@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-minimax-h3-prompt-engineer"
-version = "0.3.0"
+version = "0.4.0"
 description = "Generate validated MiniMax H3 prompts and conditioning through RunningHub, OpenAI, or local LLMs."
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
