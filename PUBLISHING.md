@@ -28,6 +28,7 @@ The node ID and Publisher ID are permanent Registry identifiers. Confirm that th
    python -m unittest discover -s tests -v
    python -m compileall -q .
    node --check web/h3_asset_autocomplete.js
+   node tests/test_provider_memory.mjs
    git diff --check
    ```
 

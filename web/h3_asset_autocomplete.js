@@ -2,6 +2,7 @@
 // Copyright (C) 2026 colorAi
 
 import { app } from "../../scripts/app.js";
+import { installProviderConfigMemory } from "./h3_provider_config_memory.js";
 
 const NODE_TYPE = "MinimaxH3PromptStudio";
 const INSTALLED_FLAG = "__h3AssetAutocompleteInstalled";
@@ -312,6 +313,16 @@ function installWhenReady(node, attempt = 0) {
     node.__h3AssetAutocompleteCleanup = attachAutocomplete(node, widget, input);
 }
 
+function installProviderMemoryWhenReady(node, attempt = 0) {
+    const widget = node.widgets?.find((candidate) => candidate.name === "ai_provider");
+    if (!widget) {
+        if (attempt < 20) window.setTimeout(() => installProviderMemoryWhenReady(node, attempt + 1), 100);
+        return;
+    }
+    node.__h3ProviderConfigMemoryCleanup?.();
+    installProviderConfigMemory(node);
+}
+
 app.registerExtension({
     name: "MiniMaxH3.AssetAutocomplete",
     async beforeRegisterNodeDef(nodeType, nodeData) {
@@ -322,6 +333,7 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const result = originalOnNodeCreated?.apply(this, arguments);
             window.setTimeout(() => installWhenReady(this), 0);
+            window.setTimeout(() => installProviderMemoryWhenReady(this), 0);
             return result;
         };
 
@@ -329,6 +341,8 @@ app.registerExtension({
         nodeType.prototype.onRemoved = function () {
             this.__h3AssetAutocompleteCleanup?.();
             this.__h3AssetAutocompleteCleanup = null;
+            this.__h3ProviderConfigMemoryCleanup?.();
+            this.__h3ProviderConfigMemoryCleanup = null;
             return originalOnRemoved?.apply(this, arguments);
         };
     },

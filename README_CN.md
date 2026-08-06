@@ -4,7 +4,7 @@
 
 面向 **MiniMax H3 视频生成**的一体化 ComfyUI 提示词与 conditioning 节点。通过 RunningHub、OpenAI 或本地 OpenAI-compatible 模型构建可验证的 H3 视听提示词；图片、视频和音频只连接一次，并通过 `@素材` 贯穿 AI 理解、引用对齐与官方 H3 生成。
 
-> 当前版本：`0.4.2`
+> 当前版本：`0.4.3`
 > 节点分类：`MiniMax H3 / Prompt Engineer`
 
 插件内置并严格使用：
@@ -85,11 +85,13 @@ MiniMax H3 / Prompt Engineer
 
 #### 请求深度
 
-| `request_level` | 适用场景 | 注入规则 |
+| `request_level` | 注入内容 | Full Reference 正文目标 |
 | --- | --- | --- |
-| `Basic · 基础` | 需求清晰、快速改写 | 模板核心风格与 H3 基础规范 |
-| `Medium · 中度` | 常规成片、质量与成本平衡 | 模板专项、分镜、连续性、声音与质检 |
-| `Full · 完整` | 广告、MV、叙事短片等高控制任务 | 节拍、视觉系统、动作、运镜、文字、引用保留与最终检查 |
+| `Basic · 基础` | 精简 H3 必需格式与模板方向 | 约 180–260 个英文词 |
+| `Medium · 中度` | 精简格式、模板专项、分镜、连续性、声音与质检 | 约 280–380 个英文词 |
+| `Full · 完整` | 完整官方基础与 Full Reference Skills、全部制作规则 | 约 350–500 个英文词 |
+
+三个等级同时控制请求上下文和输出详细度；只有 `Full` 注入完整官方写作指南。用户明确要求的镜头、台词、文字和引用关系不会因等级降低而省略。
 
 #### 输出语言
 
@@ -98,7 +100,7 @@ MiniMax H3 / Prompt Engineer
 | `English · H3 native` | H3 英文执行版本 | 同一英文版本 |
 | `简体中文 · Display translation` | H3 英文执行版本 | 保留字段、时间戳和引用标签的中文阅读版本 |
 
-中文显示会增加一次翻译调用；Direct 模式仅输出英文执行版本。
+使用 AI provider 时，中文显示会增加一次翻译调用。两种 Direct 模式不调用 AI，`formatted_prompt` 与 `display_prompt` 都保持用户输入语言。
 
 AI 提供方：
 
@@ -107,7 +109,12 @@ AI 提供方：
 | `RunningHub` | 使用国内站或国际站 Chat Completions API |
 | `OpenAI` | 使用 OpenAI Chat Completions；选择后可修改对应的 `model` |
 | `Local OpenAI-compatible` | 支持提供 `/v1/chat/completions` 的 Ollama、LM Studio、vLLM 等服务 |
-| `Direct · Prompt already formatted` | 不请求任何 LLM，把输入作为完整 H3 提示词直接校验和生成 conditioning |
+| `Direct · Use prompt as-is` | 不请求任何 LLM；转换 `@素材` 后把普通提示词原样交给 H3，不执行文档结构校验 |
+| `Direct · Prompt already formatted` | 不请求任何 LLM；用于完整 H3 文档，并按当前任务模式执行严格结构校验 |
+
+Direct 原样模式适合直接使用中文或英文普通提示词。`strict_validation` 不作用于该模式；素材越界、音频配对和 conditioning 输入仍照常检查。
+
+在同一个节点中切换 AI provider 时，各 provider 的站点、模型、服务地址和 API Key 会分别保存在当前页面内存中，切回后自动恢复。该临时缓存不会额外写入浏览器存储；保存或分享工作流前仍应清空 API Key。
 
 本地服务示例：
 

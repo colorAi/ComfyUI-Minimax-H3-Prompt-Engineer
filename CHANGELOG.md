@@ -2,6 +2,13 @@
 
 All notable changes to MiniMax H3 Prompt Engineer are documented here.
 
+## 0.4.3
+
+- Made Basic, Medium, and Full scale both injected guide context and final prompt density; only Full loads the complete official writing guides.
+- Added a pass-through Direct provider for ordinary prompts while retaining strict validation for preformatted H3 documents.
+- Preserved each AI provider's model, endpoint, site, and API key while switching provider modes in the same node session.
+- Excluded Registry-generated ZIP archives from source control and future publish archives.
+
 ## 0.4.2
 
 - Fixed connected-asset autocomplete so `@` can immediately follow Chinese text without requiring whitespace.

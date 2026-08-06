@@ -13,6 +13,12 @@ from comfy_extras import nodes_minimax_h3 as comfy_h3
 
 try:
     from .asset_refs import AssetBundle, keyframe_bundle
+    from .direct_prompt import (
+        DIRECT_PROVIDERS,
+        PROVIDER_DIRECT_RAW,
+        PROVIDER_DIRECT_STRICT,
+        prepare_direct_prompt,
+    )
     from .openai_compatible_client import (
         LOCAL_DEFAULT_BASE_URL,
         LOCAL_DEFAULT_MODEL,
@@ -46,6 +52,12 @@ try:
     from .validators import clean_model_response, validate_prompt
 except ImportError:  # Allows direct loading when ComfyUI imports custom modules unusually.
     from asset_refs import AssetBundle, keyframe_bundle
+    from direct_prompt import (
+        DIRECT_PROVIDERS,
+        PROVIDER_DIRECT_RAW,
+        PROVIDER_DIRECT_STRICT,
+        prepare_direct_prompt,
+    )
     from openai_compatible_client import (
         LOCAL_DEFAULT_BASE_URL,
         LOCAL_DEFAULT_MODEL,
@@ -84,7 +96,6 @@ MODE_AUTO = "Auto · Infer from connected assets"
 PROVIDER_RUNNINGHUB = "RunningHub"
 PROVIDER_OPENAI = "OpenAI"
 PROVIDER_LOCAL = "Local OpenAI-compatible"
-PROVIDER_DIRECT = "Direct · Prompt already formatted"
 
 DISPLAY_LANGUAGE_ENGLISH = "English · H3 native"
 DISPLAY_LANGUAGE_CHINESE = "简体中文 · Display translation"
@@ -144,17 +155,32 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                                 ),
                             ],
                         ),
-                        io.DynamicCombo.Option(PROVIDER_DIRECT, []),
+                        io.DynamicCombo.Option(PROVIDER_DIRECT_RAW, []),
+                        io.DynamicCombo.Option(PROVIDER_DIRECT_STRICT, []),
                     ],
-                    tooltip="Only the settings needed by the selected provider are shown.",
+                    tooltip=(
+                        "Use prompt as-is skips all LLM calls and H3 document validation. "
+                        "Prompt already formatted keeps strict schema validation."
+                    ),
                 ),
                 io.Combo.Input("prompt_template", options=PROMPT_TEMPLATES, default=DEFAULT_TEMPLATE),
-                io.Combo.Input("request_level", options=REQUEST_LEVELS, default=REQUEST_LEVELS[0]),
+                io.Combo.Input(
+                    "request_level",
+                    options=REQUEST_LEVELS,
+                    default=REQUEST_LEVELS[0],
+                    tooltip=(
+                        "Basic uses a compact H3 contract and short output; Medium adds production rules; "
+                        "Full injects the complete official writing guides."
+                    ),
+                ),
                 io.Combo.Input(
                     "display_language",
                     options=DISPLAY_LANGUAGES,
                     default=DISPLAY_LANGUAGE_ENGLISH,
-                    tooltip="H3 always receives the official English prompt; Chinese adds a translated display output.",
+                    tooltip=(
+                        "AI providers always send English to H3 and can add a Chinese display translation. "
+                        "Direct modes return the supplied language unchanged."
+                    ),
                 ),
                 io.Combo.Input("task_mode", options=[MODE_AUTO, *TASK_MODES], default=MODE_AUTO),
                 io.String.Input(
@@ -163,7 +189,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                     dynamic_prompts=False,
                     placeholder=(
                         "例如：@图像1 里的女孩登上 @视频1 的列车；环境声参考 @音频1。"
-                        " Direct 模式请粘贴完整 H3 提示词。"
+                        " Direct 原样模式可输入普通提示词；严格 Direct 模式需粘贴完整 H3 文档。"
                     ),
                 ),
                 io.Int.Input("width", default=1344, min=32, max=max_resolution, step=32),
@@ -246,7 +272,12 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 io.Int.Input("timeout_seconds", default=120, min=10, max=600, step=10, advanced=True),
                 io.Int.Input("image_max_side", default=1024, min=512, max=4096, step=128, advanced=True),
                 io.Boolean.Input("auto_repair", default=True, advanced=True),
-                io.Boolean.Input("strict_validation", default=True, advanced=True),
+                io.Boolean.Input(
+                    "strict_validation",
+                    default=True,
+                    advanced=True,
+                    tooltip="Applies to AI output and strict Direct documents; pass-through Direct always skips it.",
+                ),
             ],
             outputs=[
                 io.Conditioning.Output("positive"),
@@ -355,8 +386,9 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 supports_reasoning_effort=False,
             )
             return provider, client, model, {"endpoint": f"{client.base_url}/chat/completions"}
-        if provider == PROVIDER_DIRECT:
-            return provider, None, "direct", {"endpoint": None}
+        if provider in DIRECT_PROVIDERS:
+            direct_mode = "pass_through" if provider == PROVIDER_DIRECT_RAW else "strict_document"
+            return provider, None, "direct", {"endpoint": None, "direct_mode": direct_mode}
         raise ValueError(f"Unsupported ai_provider: {provider}")
 
     @staticmethod
@@ -397,9 +429,17 @@ class MinimaxH3PromptStudio(io.ComfyNode):
         calls: list[dict[str, Any]] = []
         raw_outputs: dict[str, str] = {}
 
-        if provider == PROVIDER_DIRECT:
-            formatted = alias_plan.resolve_text(clean_model_response(user_request, mode))
-            validation = validate_prompt(formatted, mode, duration)
+        direct_result = None
+        if provider in DIRECT_PROVIDERS:
+            direct_result = prepare_direct_prompt(
+                provider=provider,
+                user_request=user_request,
+                resolve_text=alias_plan.resolve_text,
+                mode=mode,
+                duration=duration,
+                request_level=request_level,
+            )
+            formatted = direct_result.formatted
         else:
             messages = build_messages(
                 mode=mode,
@@ -424,7 +464,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                 calls.append(cls._usage_entry(initial, "initial"))
                 raw_outputs["initial_response"] = initial.content
                 formatted = alias_plan.resolve_text(clean_model_response(initial.content, mode))
-                validation = validate_prompt(formatted, mode, duration)
+                validation = validate_prompt(formatted, mode, duration, request_level=request_level)
 
                 if not validation.is_valid and auto_repair:
                     repair = client.chat(
@@ -445,18 +485,17 @@ class MinimaxH3PromptStudio(io.ComfyNode):
                     calls.append(cls._usage_entry(repair, "repair"))
                     raw_outputs["repair_response"] = repair.content
                     formatted = alias_plan.resolve_text(clean_model_response(repair.content, mode))
-                    validation = validate_prompt(formatted, mode, duration)
+                    validation = validate_prompt(formatted, mode, duration, request_level=request_level)
             except (RunningHubError, CompatibleAPIError) as exc:
                 raise RuntimeError(exc.user_message()) from exc
 
-        report = validation.report()
-        if strict_validation and not validation.is_valid:
+        report = direct_result.validation_report if direct_result is not None else validation.report()
+        is_valid = direct_result.is_valid if direct_result is not None else validation.is_valid
+        if strict_validation and not is_valid:
             raise ValueError(f"{provider} produced a prompt that fails strict H3 validation:\n{report}")
 
         display_prompt = formatted
-        if display_language == DISPLAY_LANGUAGE_CHINESE:
-            if provider == PROVIDER_DIRECT:
-                raise ValueError("Chinese display translation requires an AI provider; Direct mode makes no AI calls")
+        if display_language == DISPLAY_LANGUAGE_CHINESE and provider not in DIRECT_PROVIDERS:
             try:
                 translation = client.chat(
                     model=model,
@@ -471,7 +510,7 @@ class MinimaxH3PromptStudio(io.ComfyNode):
             calls.append(cls._usage_entry(translation, "translation"))
             raw_outputs["translation_response"] = translation.content
             display_prompt = translation.content.strip()
-        elif display_language != DISPLAY_LANGUAGE_ENGLISH:
+        elif display_language not in DISPLAY_LANGUAGES:
             raise ValueError(f"Unsupported display language: {display_language}")
 
         usage = {

@@ -4,7 +4,7 @@
 
 An integrated ComfyUI prompt-orchestration and conditioning node for **MiniMax H3 video generation**. Build validated H3 audiovisual prompts with RunningHub, OpenAI, or a local OpenAI-compatible model; connect each image, video, and audio asset once, then address it through `@asset` across AI interpretation, reference alignment, and official H3 generation.
 
-> Current version: `0.4.2`
+> Current version: `0.4.3`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
 ## Core capabilities
@@ -74,11 +74,13 @@ Numbering follows actual connections. The node compacts Autogrow gaps, applies n
 
 #### Request depth
 
-| `request_level` | Best for | Injected production context |
+| `request_level` | Injected context | Full Reference body target |
 | --- | --- | --- |
-| `Basic · 基础` | Clear briefs and fast rewrites | Core template direction and H3 schema |
-| `Medium · 中度` | Balanced production work | Template rules, shot design, continuity, audio, and quality control |
-| `Full · 完整` | Ads, music videos, and narrative work requiring maximum control | Beats, visual system, motion, camera, text, reference retention, and final checks |
+| `Basic · 基础` | Compact required H3 contract and core template direction | About 180–260 English words |
+| `Medium · 中度` | Compact contract plus template, shot, continuity, audio, and QC rules | About 280–380 English words |
+| `Full · 完整` | Complete official base and Full Reference skills plus all production rules | About 350–500 English words |
+
+The levels scale both request context and output density; only `Full` injects the complete official writing guides. Explicit shots, dialogue, visible text, and reference relationships are preserved at every level.
 
 #### Display language
 
@@ -87,7 +89,7 @@ Numbering follows actual connections. The node compacts Autogrow gaps, applies n
 | `English · H3 native` | English H3 execution prompt | Same English prompt |
 | `简体中文 · Display translation` | English H3 execution prompt | Chinese reading version with schema, timestamps, and reference tags preserved |
 
-Chinese display output adds one translation call. Direct mode returns the English execution prompt only.
+With an AI provider, Chinese display output adds one translation call. Both Direct modes make no AI call, so `formatted_prompt` and `display_prompt` preserve the supplied language.
 
 Available providers:
 
@@ -96,7 +98,12 @@ Available providers:
 | `RunningHub` | Uses the selected Global or China Chat Completions endpoint |
 | `OpenAI` | Uses OpenAI Chat Completions and the selected provider's `model` field |
 | `Local OpenAI-compatible` | Uses an Ollama, LM Studio, vLLM, or similar `/v1/chat/completions` server |
-| `Direct · Prompt already formatted` | Makes no LLM request; validates and conditions an already-formatted H3 prompt |
+| `Direct · Use prompt as-is` | Makes no LLM request; resolves `@asset` aliases and conditions an ordinary prompt without document-schema validation |
+| `Direct · Prompt already formatted` | Makes no LLM request; strictly validates and conditions an already-formatted H3 document |
+
+Pass-through Direct accepts ordinary Chinese or English prompts and ignores `strict_validation`; asset bounds, soundtrack pairing, and conditioning inputs remain validated.
+
+When switching AI providers on the same node, each provider's site, model, endpoint, and API key are retained separately in the current page session and restored when selected again. This temporary cache is not additionally written to browser storage; clear API keys before saving or sharing workflows.
 
 Typical local configuration:
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import unittest
 
 from prompt_builder import MODE_FL2VA, MODE_FULL_REFERENCE, MODE_I2VA, MODE_L2VA, MODE_T2VA
+from templates import REQUEST_LEVEL_BASIC, REQUEST_LEVEL_FULL
 from validators import clean_model_response, validate_prompt
 
 T2VA = """integrated_multimodal_description: [Shot 1] Live-action, cinematic, a woman walks through a rain-covered street. [Shot 2] At 00:03.000, the camera cuts to a close-up as she opens a taxi door.
@@ -77,6 +78,16 @@ class ValidatorTests(unittest.TestCase):
         result = validate_prompt(FULL_REFERENCE, MODE_FULL_REFERENCE, 6.0)
         self.assertTrue(result.is_valid, result.report())
         self.assertTrue(any(issue.code == "description_length" for issue in result.warnings))
+
+    def test_full_reference_length_warning_follows_request_level(self) -> None:
+        description = "[Shot 1] " + "detail " * 199
+        start = FULL_REFERENCE.index("detailed_description:") + len("detailed_description:")
+        end = FULL_REFERENCE.index("\noverall_soundscape:")
+        prompt = FULL_REFERENCE[:start] + "\n" + description.rstrip() + "\n" + FULL_REFERENCE[end:]
+        basic = validate_prompt(prompt, MODE_FULL_REFERENCE, 6.0, request_level=REQUEST_LEVEL_BASIC)
+        full = validate_prompt(prompt, MODE_FULL_REFERENCE, 6.0, request_level=REQUEST_LEVEL_FULL)
+        self.assertFalse(any(issue.code == "description_length" for issue in basic.warnings), basic.report())
+        self.assertTrue(any(issue.code == "description_length" for issue in full.warnings), full.report())
 
     def test_bad_shot_time_is_rejected(self) -> None:
         bad = T2VA.replace("00:03.000", "00:09.000")

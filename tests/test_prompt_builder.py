@@ -9,7 +9,15 @@ import numpy as np
 
 from image_utils import image_tensor_to_data_url
 from presets import CreativePresets
-from prompt_builder import MODE_FL2VA, MODE_T2VA, ReferenceImage, build_messages, build_translation_messages
+from prompt_builder import (
+    MODE_FL2VA,
+    MODE_FULL_REFERENCE,
+    MODE_T2VA,
+    ReferenceImage,
+    build_messages,
+    build_system_prompt,
+    build_translation_messages,
+)
 from templates import (
     PROMPT_TEMPLATES,
     REQUEST_LEVEL_BASIC,
@@ -84,6 +92,21 @@ class PromptBuilderTests(unittest.TestCase):
         self.assertIn("production-ready H3 prompt", medium)
         self.assertIn("Final quality control", full)
         self.assertIn("visible folds", full)
+
+    def test_request_levels_scale_guide_payload_and_output_density(self) -> None:
+        systems = {
+            level: build_system_prompt(MODE_FULL_REFERENCE, request_level=level)
+            for level in (REQUEST_LEVEL_BASIC, REQUEST_LEVEL_MEDIUM, REQUEST_LEVEL_FULL)
+        }
+        self.assertLess(len(systems[REQUEST_LEVEL_BASIC]), len(systems[REQUEST_LEVEL_MEDIUM]))
+        self.assertLess(len(systems[REQUEST_LEVEL_MEDIUM]), len(systems[REQUEST_LEVEL_FULL]))
+        self.assertGreater(len(systems[REQUEST_LEVEL_FULL]), len(systems[REQUEST_LEVEL_BASIC]) * 3)
+        self.assertIn("Target 180–260 English words", systems[REQUEST_LEVEL_BASIC])
+        self.assertIn("Target 280–380 English words", systems[REQUEST_LEVEL_MEDIUM])
+        self.assertIn("Target 350–500 English words", systems[REQUEST_LEVEL_FULL])
+        self.assertNotIn("# Full-Reference Mode Rewrite Output Format Guide", systems[REQUEST_LEVEL_BASIC])
+        self.assertNotIn("# Full-Reference Mode Rewrite Output Format Guide", systems[REQUEST_LEVEL_MEDIUM])
+        self.assertIn("# Full-Reference Mode Rewrite Output Format Guide", systems[REQUEST_LEVEL_FULL])
 
     def test_translation_prompt_preserves_h3_contract_tokens(self) -> None:
         messages = build_translation_messages("integrated_multimodal_description: [Shot 1] Test")

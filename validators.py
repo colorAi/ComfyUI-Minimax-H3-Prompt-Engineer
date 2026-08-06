@@ -10,8 +10,10 @@ from dataclasses import dataclass, field
 
 try:
     from .prompt_builder import mode_code
+    from .templates import REQUEST_LEVEL_BASIC, REQUEST_LEVEL_MEDIUM
 except ImportError:  # Allows direct imports in local tests.
     from prompt_builder import mode_code
+    from templates import REQUEST_LEVEL_BASIC, REQUEST_LEVEL_MEDIUM
 
 
 BASE_FIELDS = [
@@ -261,7 +263,12 @@ def _reference_labels(text: str) -> set[str]:
     return set(re.findall(r"<(?:Subject|Picture|Video|Audio)\s+\d+>", text))
 
 
-def _validate_full_reference(text: str, duration: float, result: ValidationResult) -> None:
+def _validate_full_reference(
+    text: str,
+    duration: float,
+    result: ValidationResult,
+    request_level: str | None = None,
+) -> None:
     if not text.startswith("subject_definitions:"):
         result.error("full_reference_start", "Full-reference output must begin with subject_definitions:.")
     sections = _extract_sections(text, FULL_REFERENCE_FIELDS, result)
@@ -280,21 +287,33 @@ def _validate_full_reference(text: str, duration: float, result: ValidationResul
     _validate_shots(description, duration, result)
     _validate_dialogue_tags(description, result)
     word_count = len(re.findall(r"\b[A-Za-z]+(?:[-'][A-Za-z]+)*\b", description))
-    if word_count and not 350 <= word_count <= 500:
+    target_range = {
+        REQUEST_LEVEL_BASIC: (180, 260),
+        REQUEST_LEVEL_MEDIUM: (280, 380),
+    }.get(request_level, (350, 500))
+    minimum, maximum = target_range
+    if word_count and not minimum <= word_count <= maximum:
+        level_note = f" for {request_level}" if request_level else ""
         result.warning(
             "description_length",
-            f"detailed_description contains about {word_count} English words; generation tasks normally target 350–500.",
+            f"detailed_description contains about {word_count} English words; the target{level_note} is "
+            f"{minimum}–{maximum}.",
         )
 
 
-def validate_prompt(text: str, mode: str, duration: float) -> ValidationResult:
+def validate_prompt(
+    text: str,
+    mode: str,
+    duration: float,
+    request_level: str | None = None,
+) -> ValidationResult:
     result = ValidationResult()
     if not text.strip():
         result.error("empty_response", "The model response is empty.")
         return result
     code = mode_code(mode)
     if code == "FULL_REFERENCE":
-        _validate_full_reference(text, duration, result)
+        _validate_full_reference(text, duration, result, request_level)
     else:
         _validate_base(text, code, duration, result)
     return result

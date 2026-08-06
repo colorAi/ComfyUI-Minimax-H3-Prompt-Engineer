@@ -13,11 +13,23 @@ from typing import Any
 try:
     from .image_utils import image_url_part
     from .presets import CreativePresets
-    from .templates import DEFAULT_TEMPLATE, REQUEST_LEVEL_BASIC, template_context
+    from .templates import (
+        DEFAULT_TEMPLATE,
+        REQUEST_LEVEL_BASIC,
+        REQUEST_LEVEL_FULL,
+        REQUEST_LEVEL_MEDIUM,
+        template_context,
+    )
 except ImportError:  # Allows direct imports in local tests.
     from image_utils import image_url_part
     from presets import CreativePresets
-    from templates import DEFAULT_TEMPLATE, REQUEST_LEVEL_BASIC, template_context
+    from templates import (
+        DEFAULT_TEMPLATE,
+        REQUEST_LEVEL_BASIC,
+        REQUEST_LEVEL_FULL,
+        REQUEST_LEVEL_MEDIUM,
+        template_context,
+    )
 
 
 MODE_T2VA = "T2VA · Text to Audiovisual"
@@ -70,6 +82,104 @@ def get_reference_guide() -> str:
     return _read_guide("VIDEO_PROMPT_WRITING_GUIDE_ref_en.md")
 
 
+COMPACT_BASE_GUIDE = """H3 compact base contract
+
+Return only the final English prompt document. T2VA begins directly with the three fields below. I2VA, FL2VA,
+and L2VA first write the exact alignment line supplied in the task contract, followed by one blank line.
+
+Required fields and order:
+integrated_multimodal_description: [Shot 1] ...
+overall_soundscape: ...
+non_diegetic_music: ...
+
+The first shot is `[Shot 1]` with no timestamp. Each later cut is sequential and begins exactly
+`[Shot N] At MM:SS.mmm,` at a strictly increasing time inside the effective duration. Describe visible action,
+camera behavior, dialogue, and synchronized diegetic sound in the main field. Write dialogue or lyrics exactly as
+`<d>[Language] ...</d>`. Summarize ambience, physical sounds, and non-verbal human sounds in
+`overall_soundscape`. Use `non_diegetic_music: N/A` when no audience-only score is requested or needed.
+
+For keyframe modes, preserve identity, clothing, composition, colors, objects, and spatial relationships from the
+connected picture. I2VA develops forward from Picture 1; FL2VA moves continuously from Picture 1 to Picture 2;
+L2VA builds a plausible earlier state and converges exactly on Picture 1 at the end."""
+
+
+COMPACT_REFERENCE_GUIDE = """H3 compact full-reference contract
+
+Return exactly these six English sections in order, with no text before `subject_definitions:`:
+subject_definitions:
+summary:
+retention_analysis:
+detailed_description:
+overall_soundscape:
+non_diegetic_music:
+
+Define every used `<Subject N>`, `<Picture N>`, `<Video N>`, and `<Audio N>` label once in
+`subject_definitions`, preserving the source role and the attributes that matter. Begin `summary` with one or more
+valid task types joined by ` + ` inside brackets: `keyframe completion`, `reference generation`, `video editing`,
+`video continuation`, `audio reuse`, or `audio reference`.
+
+Write one `retention_analysis` line for every defined reference. Visible references use `fully_preserved`,
+`partially_preserved`, `attribute_transfer`, or `weak_reference`; audio references use `fully_copy`,
+`partially_copy`, `reference`, or `weak_reference`. Follow each marker with ` - ` and a concrete explanation.
+
+In `detailed_description`, establish the target style briefly, then describe playback order. `[Shot 1]` has no
+timestamp; every later cut begins exactly `[Shot N] At MM:SS.mmm,` at a strictly increasing time inside the target
+duration. Reuse reference labels wherever their roles take effect. Preserve dialogue and lyrics exactly inside
+`<d>[Language] ...</d>`. Summarize ambience and physical sounds in `overall_soundscape`; describe audience-only
+music in `non_diegetic_music`, or write `N/A` when none is requested."""
+
+
+MEDIUM_GUIDE_EXTENSION = """Medium H3 production guidance
+
+- Give the target a clear setup, development, and payoff that fit the effective duration.
+- Preserve subject identity, wardrobe, props, environment layout, lighting direction, screen direction, and object
+  state across the timeline.
+- Describe only camera framing and movement that materially improve action readability; avoid stacked camera labels.
+- Give motion visible anticipation, contact, weight, reaction, and settling when appropriate.
+- Synchronize ambience, action foley, dialogue, and meaningful music changes without repeating dialogue in the audio
+  summary fields.
+- Treat reference roles precisely: preserve what the request protects, transfer only requested attributes, and do not
+  silently merge or renumber references.
+- Preserve exact dialogue, lyrics, brand text, and visible text. Remove contradictions, impossible timing, decorative
+  details with no production purpose, and unsupported claims before returning the document."""
+
+
+def guide_context(mode: str, request_level: str = REQUEST_LEVEL_BASIC) -> str:
+    """Select progressively larger H3 guide context for the requested production depth."""
+    code = mode_code(mode)
+    compact = COMPACT_REFERENCE_GUIDE if code == "FULL_REFERENCE" else COMPACT_BASE_GUIDE
+    if request_level == REQUEST_LEVEL_BASIC:
+        return compact
+    if request_level == REQUEST_LEVEL_MEDIUM:
+        return f"{compact}\n\n{MEDIUM_GUIDE_EXTENSION}"
+    if request_level == REQUEST_LEVEL_FULL:
+        guide = get_base_guide()
+        if code == "FULL_REFERENCE":
+            guide += "\n\n--- FULL-REFERENCE GUIDE ---\n\n" + get_reference_guide()
+        return guide
+    raise ValueError(f"Unsupported template request level: {request_level}")
+
+
+def output_density_contract(mode: str, request_level: str = REQUEST_LEVEL_BASIC) -> str:
+    code = mode_code(mode)
+    ranges = {
+        REQUEST_LEVEL_BASIC: ("compact", "180–260" if code == "FULL_REFERENCE" else "100–180"),
+        REQUEST_LEVEL_MEDIUM: ("production-ready", "280–380" if code == "FULL_REFERENCE" else "180–300"),
+        REQUEST_LEVEL_FULL: ("maximally detailed", "350–500" if code == "FULL_REFERENCE" else "as needed"),
+    }
+    try:
+        density, target = ranges[request_level]
+    except KeyError as exc:
+        raise ValueError(f"Unsupported template request level: {request_level}") from exc
+    noun = "detailed_description" if code == "FULL_REFERENCE" else "integrated_multimodal_description"
+    return (
+        f"Write a {density} final document. Target {target} English words in `{noun}`. "
+        "Never omit required fields or explicit user instructions. Use one continuous shot unless the user requests "
+        "cuts or additional shots are necessary to express distinct events. Do not add decorative events, props, "
+        "sound, or camera moves merely to increase detail."
+    )
+
+
 def _mode_contract(code: str, duration: float) -> str:
     duration_text = f"{duration:.2f}"
     contracts = {
@@ -78,19 +188,23 @@ def _mode_contract(code: str, duration: float) -> str:
             "integrated_multimodal_description and contain exactly the three base fields."
         ),
         "I2VA": (
-            "This is an I2VA task. <Picture 1> is the first frame at 0.00 seconds and belongs to "
-            "[Shot 1]. Use the exact I2VA alignment instruction from the guide."
+            "This is an I2VA task. <Picture 1> is the first frame at 0.00 seconds and belongs to [Shot 1]. "
+            "The first line must be exactly: For the target video, at 0.00 seconds into the target video, "
+            "<Picture 1> (from [Shot 1]) is fully referenced."
         ),
         "FL2VA": (
             f"This is an FL2VA task. <Picture 1> is the first frame and <Picture 2> is the final "
-            f"frame at {duration_text} seconds. Use the exact FL2VA alignment instruction, with the "
-            "actual final shot number. Prefer a single continuous shot unless the user explicitly "
-            "requests cuts."
+            f"frame at {duration_text} seconds. The first line must be exactly the following, replacing N with the "
+            "actual final shot number: How the reference pictures align with the target video — Picture 1 "
+            "(from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot N) aligns "
+            f"with the {duration_text}-second mark of the target video. Prefer a single continuous shot unless the "
+            "user explicitly requests cuts."
         ),
         "L2VA": (
-            f"This is an L2VA task. <Picture 1> is the final frame at {duration_text} seconds. Use the "
-            "exact L2VA alignment instruction with the actual final shot number and make the action "
-            "converge naturally on that frame."
+            f"This is an L2VA task. <Picture 1> is the final frame at {duration_text} seconds. The first line must "
+            "be exactly the following, replacing N with the actual final shot number: How the reference pictures "
+            "align with the target video — <Picture 1> (from [Shot N]) aligns with the "
+            f"{duration_text}-second mark of the target video. Make the action converge naturally on that frame."
         ),
         "FULL_REFERENCE": (
             "This is a full-reference task. Return exactly the six full-reference sections in the "
@@ -106,11 +220,10 @@ def build_system_prompt(
     template: str = DEFAULT_TEMPLATE,
     request_level: str = REQUEST_LEVEL_BASIC,
 ) -> str:
-    code = mode_code(mode)
-    guide_text = get_base_guide()
-    if code == "FULL_REFERENCE":
-        guide_text += "\n\n--- FULL-REFERENCE GUIDE ---\n\n" + get_reference_guide()
+    mode_code(mode)
+    guide_text = guide_context(mode, request_level)
     creative_direction = template_context(template, request_level)
+    density_contract = output_density_contract(mode, request_level)
 
     return f"""You are Minimax H3 Prompt Engineer, a strict professional rewrite engine.
 
@@ -131,6 +244,9 @@ Template request level: {request_level}
 Creative direction and production rules:
 {creative_direction}
 Apply this direction only where the user's explicit request and reference-retention requirements leave room for creative judgment. It never changes the required H3 output schema.
+
+Output density contract:
+{density_contract}
 
 The authoritative writing guide follows:
 

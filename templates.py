@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-
 DEFAULT_TEMPLATE = "Official H3 · General"
 
 REQUEST_LEVEL_BASIC = "Basic · 基础"
