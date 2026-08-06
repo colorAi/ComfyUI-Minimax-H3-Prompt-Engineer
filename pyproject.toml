@@ -1,6 +1,6 @@
 [project]
 name = "minimax-h3-prompt-engineer"
-version = "0.4.3"
+version = "0.4.4"
 description = "One-node MiniMax H3 prompt engineering, semantic asset references, validation, and official conditioning."
 readme = "README.md"
 requires-python = ">=3.10"

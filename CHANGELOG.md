@@ -2,6 +2,10 @@
 
 All notable changes to MiniMax H3 Prompt Engineer are documented here.
 
+## 0.4.4
+
+- Persisted each AI provider's endpoint, model, site, and API key in a private local plugin configuration file.
+
 ## 0.4.3
 
 - Made Basic, Medium, and Full scale both injected guide context and final prompt density; only Full loads the complete official writing guides.

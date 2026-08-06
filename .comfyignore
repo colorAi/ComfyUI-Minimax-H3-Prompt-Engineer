@@ -12,4 +12,6 @@ htmlcov/
 build/
 dist/
 *.zip
+provider_config.json
+provider_config.json.tmp
 *.egg-info/

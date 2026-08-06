@@ -4,7 +4,7 @@
 
 面向 **MiniMax H3 视频生成**的一体化 ComfyUI 提示词与 conditioning 节点。通过 RunningHub、OpenAI 或本地 OpenAI-compatible 模型构建可验证的 H3 视听提示词；图片、视频和音频只连接一次，并通过 `@素材` 贯穿 AI 理解、引用对齐与官方 H3 生成。
 
-> 当前版本：`0.4.3`
+> 当前版本：`0.4.4`
 > 节点分类：`MiniMax H3 / Prompt Engineer`
 
 插件内置并严格使用：
@@ -114,7 +114,7 @@ AI 提供方：
 
 Direct 原样模式适合直接使用中文或英文普通提示词。`strict_validation` 不作用于该模式；素材越界、音频配对和 conditioning 输入仍照常检查。
 
-在同一个节点中切换 AI provider 时，各 provider 的站点、模型、服务地址和 API Key 会分别保存在当前页面内存中，切回后自动恢复。该临时缓存不会额外写入浏览器存储；保存或分享工作流前仍应清空 API Key。
+各 AI provider 的站点、模型、服务地址和 API Key 会自动保存到插件目录的 `provider_config.json`，无需运行工作流。配置在 provider 切换、页面刷新和 ComfyUI 重启后仍会恢复；Direct 模式不写入配置。该文件已排除在 Git 和 Registry 发布包之外，并在系统支持时限制为仅文件所有者可读写。API Key 以本地明文保存，请保护插件目录，分享节点或工作流时不要复制此文件。
 
 本地服务示例：
 

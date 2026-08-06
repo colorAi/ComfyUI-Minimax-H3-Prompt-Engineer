@@ -4,7 +4,7 @@
 
 An integrated ComfyUI prompt-orchestration and conditioning node for **MiniMax H3 video generation**. Build validated H3 audiovisual prompts with RunningHub, OpenAI, or a local OpenAI-compatible model; connect each image, video, and audio asset once, then address it through `@asset` across AI interpretation, reference alignment, and official H3 generation.
 
-> Current version: `0.4.3`
+> Current version: `0.4.4`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
 ## Core capabilities
@@ -103,7 +103,7 @@ Available providers:
 
 Pass-through Direct accepts ordinary Chinese or English prompts and ignores `strict_validation`; asset bounds, soundtrack pairing, and conditioning inputs remain validated.
 
-When switching AI providers on the same node, each provider's site, model, endpoint, and API key are retained separately in the current page session and restored when selected again. This temporary cache is not additionally written to browser storage; clear API keys before saving or sharing workflows.
+Each AI provider's site, model, endpoint, and API key is saved automatically to `provider_config.json` in the plugin directory. No workflow run is required. Settings survive provider switches, page reloads, and ComfyUI restarts; Direct modes are never stored. The file is excluded from Git and Registry packages and is created with owner-only permissions on supported systems. It contains API keys as local plain text, so protect the plugin directory and do not copy this file when sharing the node or a workflow.
 
 Typical local configuration:
 
