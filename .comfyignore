@@ -1,0 +1,14 @@
+# Development and CI files are not part of the Registry runtime archive.
+.github/
+tests/
+PUBLISHING.md
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/

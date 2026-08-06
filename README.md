@@ -2,31 +2,21 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-A production-oriented ComfyUI extension that converts short Chinese or English creative briefs into structured, validated English prompts for **MiniMax H3 video generation**. It supports RunningHub, OpenAI, local OpenAI-compatible models, selectable creative templates, and a unified node that reuses ComfyUI's official MiniMax H3 conditioning implementation so every reference asset is connected only once.
+An integrated ComfyUI prompt-orchestration and conditioning node for **MiniMax H3 video generation**. Build validated H3 audiovisual prompts with RunningHub, OpenAI, or a local OpenAI-compatible model; connect each image, video, and audio asset once, then address it through `@asset` across AI interpretation, reference alignment, and official H3 generation.
 
-> Current version: `0.4.0`
+> Current version: `0.4.1`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
-## Highlights
+## Core capabilities
 
-- Rewrites natural-language ideas into standardized MiniMax H3 prompt documents.
-- Accepts Chinese or English input while preserving exact dialogue, lyrics, and visible text.
-- Supports T2VA, I2VA, FL2VA, L2VA, and Full Reference task modes.
-- Provides a unified Prompt Studio node that directly returns H3 conditioning and the joint AV latent.
-- Shares one authoritative set of connected images, videos, video soundtracks, and standalone audio between prompt engineering and H3 conditioning.
-- Resolves `@图像1`, `@视频1`, `@视频音频1`, and `@音频1` aliases with deterministic bounds and pairing validation.
-- Supports RunningHub, OpenAI, local OpenAI-compatible servers, and a no-LLM Direct mode.
-- Includes nine selectable creative directions distilled from the official MiniMax H3 skills.
-- Offers Basic, Medium, and Full template-context levels to trade request size for production detail.
-- Keeps the validated H3 execution prompt in official English while optionally returning a Simplified Chinese display translation.
-- Shows connected materials in an autocomplete menu when the user types `@` in `user_request`.
-- Converts simple shot descriptions into sequential `[Shot N]` blocks with valid cut timestamps.
-- Accepts first-frame, last-frame, and multiple reference-image inputs.
-- Provides structured presets for style, environment, lighting, framing, camera movement, sound, and music.
-- Switches between RunningHub Global `.ai` and RunningHub China `.cn` endpoints.
-- Refreshes the model catalog for the selected site and validates vision support when images are used.
-- Performs deterministic structural validation and can automatically repair an invalid response once.
-- Returns the finished prompt, validation report, raw model responses, and API usage metadata.
+- **One-node generation path**: prompt engineering, schema validation, official H3 conditioning, and joint AV latent generation.
+- **Connect every asset once**: images, videos, paired soundtracks, and standalone audio feed both AI interpretation and H3 generation.
+- **Semantic asset addressing**: type `@` to select a connected asset and insert `@image1`, `@video1`, `@video_audio1`, or `@audio1`.
+- **Production prompt profiles**: Basic, Medium, and Full levels control template context and production-rule density.
+- **Multiple AI backends**: RunningHub, OpenAI, local OpenAI-compatible servers, and zero-LLM Direct mode.
+- **Bilingual delivery**: H3 receives a validated English execution prompt; an optional Simplified Chinese display prompt is returned separately.
+- **Full H3 mode coverage**: T2VA, I2VA, FL2VA, L2VA, Full Reference, and multi-shot timelines.
+- **Deterministic quality control**: validates asset bounds, soundtrack pairing, timestamps, and H3 document structure.
 
 ## RunningHub Registration Benefits
 
@@ -43,26 +33,61 @@ RunningHub remains available in the unified node and in the legacy prompt-only n
 
 ### MiniMax H3 Prompt Studio + Generate (recommended)
 
-This unified node combines prompt rewriting, validation, and ComfyUI's official `MiniMax H3 Image to Video` / `MiniMax H3 Reference to Video` conditioning paths.
+The production node for new workflows. Connect all assets here once; the node handles asset indexing, task-mode inference, prompt generation, validation, and official H3 conditioning.
 
-It infers the H3 task from connected materials, expands friendly `@asset` aliases, generates and validates the prompt through the selected provider, and passes the final prompt plus the exact same normalized assets into the official H3 implementation. It returns `positive`, `latent`, the formatted prompt, validation report, raw LLM response, and usage metadata.
+#### One-node execution path
+
+| Stage | Operation |
+| --- | --- |
+| Asset indexing | Detects keyframes, reference images, videos, paired soundtracks, and standalone audio |
+| Prompt engineering | Applies the selected template, request depth, and AI provider |
+| Reference alignment | Resolves `@asset` aliases into native `<Picture N>`, `<Video N>`, and `<Audio N>` labels |
+| Quality control | Validates task schema, shot timing, reference bounds, and soundtrack pairing; repairs once when enabled |
+| H3 conditioning | Calls ComfyUI's official implementation with the same normalized assets and ordering |
+| Outputs | Returns `positive`, `latent`, `formatted_prompt`, `display_prompt`, and diagnostics |
+
+#### Quick start
+
+1. Connect `clip` and `vae`; connect `audio_vae` when the workflow uses audio.
+2. Connect images, videos, and audio to the matching material inputs.
+3. Select the AI provider, creative template, request depth, and display language.
+4. Type `@` in `user_request`, select materials, and finish the creative brief.
+5. Connect `positive` and `latent` to the downstream sampling workflow.
+
+```text
+Use the character from @image1 as the lead and move her into the setting of @video1.
+Match the action rhythm to @video_audio1; preserve the material and logo from @image2 in the final product close-up.
+```
+
+#### Smart `@asset` references
+
+The `@` menu lists only connected assets and displays each alias, native H3 label, asset role, and upstream node. It supports filtering, arrow-key navigation, and Enter/Tab insertion.
+
+| Alias | Native H3 label | Asset role |
+| --- | --- | --- |
+| `@image1` | `<Picture 1>` | Reference image or mode-specific keyframe |
+| `@video1` | `<Video 1>` | Reference video |
+| `@video_audio1` | `<Audio N>` | Soundtrack paired with reference video 1 |
+| `@audio1` | `<Audio N>` | Standalone reference audio |
+
+Numbering follows actual connections. The node compacts Autogrow gaps, applies numeric ordering, and calculates native audio labels with paired video soundtracks before standalone audio. Missing references, out-of-range labels, and orphan soundtracks fail before any LLM request or H3 encoding.
 
 #### Request depth
 
-| `request_level` | Included context |
-| --- | --- |
-| `Basic · 基础` | Short creative direction only; smallest request |
-| `Medium · 中度` | Template-specific rules plus shot, continuity, audio, and quality requirements |
-| `Full · 完整` | A complete single-request production rule set covering beats, shots, visual system, motion, camera, audio, text, reference retention, and final checks |
-
-Full mode is a runtime-oriented equivalent of the useful production guidance, not a verbatim redistribution of upstream `SKILL.md` files. Agent-only canvas tools, file operations, and multi-round confirmation steps are omitted. Full mode materially increases context size and token use.
+| `request_level` | Best for | Injected production context |
+| --- | --- | --- |
+| `Basic · 基础` | Clear briefs and fast rewrites | Core template direction and H3 schema |
+| `Medium · 中度` | Balanced production work | Template rules, shot design, continuity, audio, and quality control |
+| `Full · 完整` | Ads, music videos, and narrative work requiring maximum control | Beats, visual system, motion, camera, text, reference retention, and final checks |
 
 #### Display language
 
-- `English · H3 native` returns the validated English prompt in both `formatted_prompt` and `display_prompt` without another call.
-- `简体中文 · Display translation` makes one additional call to the selected provider after validation and returns the reading translation in `display_prompt`.
-- `formatted_prompt` always remains the official English prompt actually sent to MiniMax H3, so translation cannot break its schema or alignment contract.
-- Direct mode performs no AI calls and therefore cannot create a Chinese translation.
+| Option | `formatted_prompt` | `display_prompt` |
+| --- | --- | --- |
+| `English · H3 native` | English H3 execution prompt | Same English prompt |
+| `简体中文 · Display translation` | English H3 execution prompt | Chinese reading version with schema, timestamps, and reference tags preserved |
+
+Chinese display output adds one translation call. Direct mode returns the English execution prompt only.
 
 Available providers:
 
@@ -81,30 +106,19 @@ model: qwen3-vl:8b
 api_key: empty unless your server requires it
 ```
 
-Choose a local vision model when reference images or sampled video frames need to be interpreted.
-
-Provider API keys may be serialized into ComfyUI workflow JSON. Clear them before sharing a workflow, screenshot, or diagnostic package. The node does not intentionally include full keys in outputs or errors.
-
-#### Safe `@asset` references
-
-After materials are connected, typing `@` in `user_request` opens an autocomplete menu containing the available aliases, native H3 labels, material types, and upstream node names. Continue typing to filter, then use the arrow keys and Enter/Tab to insert a selection.
-
-| User alias | H3 label | Connected material |
-| --- | --- | --- |
-| `@图像1` / `@image1` | `<Picture 1>` | First connected reference image |
-| `@视频1` / `@video1` | `<Video 1>` | First connected reference video |
-| `@视频音频1` / `@video_audio1` | `<Audio N>` | Soundtrack paired with reference video 1 |
-| `@音频1` / `@audio1` | `<Audio N>` | First standalone reference audio |
-
-The official H3 node numbers a reference video's soundtrack before standalone audio. Therefore `@音频1` is not always `<Audio 1>`. This extension computes the native label from the material's role, sorts Autogrow inputs numerically, reindexes gaps, and sends the same normalized dictionaries to both prompt construction and H3 conditioning. Missing aliases, out-of-range native labels, and orphan video soundtracks fail before an LLM request or H3 encoding begins.
-
-Full Reference inputs cannot be mixed with `first_frame` / `last_frame`, because they use separate official H3 conditioning paths. Auto mode detects and reports that conflict.
+Use a local vision model when images or sampled video frames must be interpreted. Provider keys may be serialized into ComfyUI workflow JSON; clear them before sharing a workflow.
 
 #### Templates and multimodal behavior
 
-The template dropdown includes General, 3D Animation Short, Brand Promo, Co-op Game Intro, Hand-drawn Live, Minimalist Product Ad, MV Subtitle, Paper Collage Explainer, and Papercraft Stop Motion. These are single-request directions and equivalent production rules organized from the official MiniMax H3 workflow concepts; upstream `SKILL.md` files are not copied verbatim. The bundled official writing guides remain authoritative for the output schema.
+Templates: General, 3D Animation Short, Brand Promo, Co-op Game Intro, Hand-drawn Live, Minimalist Product Ad, MV Subtitle, Paper Collage Explainer, and Papercraft Stop Motion. Every template supports Basic, Medium, and Full production context.
 
-The prompt LLM receives reference images and at most three uniformly sampled frames from each reference video. The complete connected video batch is passed to the official MiniMax H3 node, which then applies its own target-length truncation and `17k+5` frame alignment before encoding. For broad Chat Completions compatibility, audio binary data is not sent to the prompt LLM; it receives labels, duration metadata, and the user's `reference_context`, while the complete audio is passed to MiniMax H3.
+| Asset | Prompt AI | MiniMax H3 conditioning |
+| --- | --- | --- |
+| Image | Visual interpretation and reference-role analysis | Original IMAGE tensor |
+| Video | Up to three uniformly sampled frames per video | Full frame batch, truncated and aligned to `17k+5` by the official implementation |
+| Audio | Reference label, duration, and `reference_context` semantics | Complete audio data |
+
+Full Reference and `first_frame` / `last_frame` use separate official conditioning paths; Auto mode rejects mixed connections.
 
 ### Minimax H3 Prompt Engineer · RunningHub
 
@@ -173,6 +187,14 @@ The unified node additionally accepts `ref_images`, `ref_videos`, paired video s
 Image-based modes require a RunningHub model whose `/v1/models` metadata reports `capabilities.vision=true`. The default `qwen/qwen3.6-plus` model was available on both sites and reported vision support at the time of verification.
 
 ## Installation
+
+### ComfyUI Manager / Registry
+
+Search for `MiniMax H3 Prompt Engineer` in ComfyUI-Manager, or install the Registry package with Comfy CLI:
+
+```bash
+comfy node install minimax-h3-prompt-engineer
+```
 
 ### Manual installation
 

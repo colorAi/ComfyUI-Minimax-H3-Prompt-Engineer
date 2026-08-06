@@ -163,7 +163,7 @@ class RunningHubClient:
 
         headers = {
             "Accept": "application/json",
-            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.4.0",
+            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.4.1",
         }
         data = None
         if payload is not None:

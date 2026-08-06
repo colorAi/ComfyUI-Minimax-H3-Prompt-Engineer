@@ -2,9 +2,9 @@
 
 [English](README.md) | [简体中文](README_CN.md)
 
-一个面向 **MiniMax H3 视频生成**的 ComfyUI 提示词工程插件。它可以通过 RunningHub、OpenAI 或本地 OpenAI 兼容模型，把中文或英文创意整理为结构规范、可验证的英文视听提示词。新的一体化节点直接复用 ComfyUI 官方 MiniMax H3 conditioning 实现，同一份图片、视频和音频不需要再连接两遍。
+面向 **MiniMax H3 视频生成**的一体化 ComfyUI 提示词与 conditioning 节点。通过 RunningHub、OpenAI 或本地 OpenAI-compatible 模型构建可验证的 H3 视听提示词；图片、视频和音频只连接一次，并通过 `@素材` 贯穿 AI 理解、引用对齐与官方 H3 生成。
 
-> 当前版本：`0.4.0`
+> 当前版本：`0.4.1`
 > 节点分类：`MiniMax H3 / Prompt Engineer`
 
 插件内置并严格使用：
@@ -12,23 +12,16 @@
 - `VIDEO_PROMPT_WRITING_GUIDE_base_en.md`
 - `VIDEO_PROMPT_WRITING_GUIDE_ref_en.md`
 
-## 功能亮点
+## 核心能力
 
-- 把自然语言创意改写为标准化的 MiniMax H3 提示词文档。
-- 支持中文或英文输入，并保留原始台词、歌词和画面文字。
-- 支持五种 H3 任务模式和多镜头时间线。
-- 提供一体化 `Prompt Studio + Generate` 节点，直接输出 `positive` conditioning 和 H3 视听 latent。
-- 同一组图片、视频、视频配套音频和独立音频同时用于提示词理解与 H3 reference conditioning。
-- 支持 `@图像1`、`@视频1`、`@视频音频1`、`@音频1` 素材引用，并在执行前校验越界和配对错误。
-- 支持 RunningHub、OpenAI、本地 OpenAI 兼容服务和不调用 LLM 的 Direct 模式。
-- 内置 9 个可选创作模板，来自官方 MiniMax H3 skills 的创作方向。
-- 模板上下文支持基础、中度、完整三档，可在请求体积与创作细节之间取舍。
-- H3 内部始终使用官方要求的英文提示词，并可额外输出简体中文阅读译文。
-- 在 `user_request` 中输入 `@` 会列出当前已连接素材，选择后自动插入正确编号。
-- 提供视觉风格、环境、灯光、镜头、运镜、声音和音乐预设。
-- 支持 RunningHub 国内站 `.cn` 与国际站 `.ai` 切换。
-- 根据所选站点动态刷新模型，并检查图片任务所需的视觉能力。
-- 内置确定性格式校验和一次自动修复流程。
+- **单节点生成链**：提示词工程、结构校验、官方 H3 conditioning 和视听 latent 一次完成。
+- **素材只连接一次**：图片、视频、视频配套音频和独立音频同时服务于 AI 理解与 H3 生成。
+- **语义化素材寻址**：输入 `@` 即可选择已连接素材，自动插入 `@图像1`、`@视频1`、`@视频音频1` 或 `@音频1`。
+- **专业提示词档位**：`Basic`、`Medium`、`Full` 三档控制模板上下文与制作规则密度。
+- **多模型后端**：RunningHub、OpenAI、本地 OpenAI-compatible 服务及零 LLM 调用的 Direct 模式。
+- **双语交付**：H3 使用经过校验的英文执行提示词，同时可输出简体中文阅读版本。
+- **多模态引用**：支持 T2VA、I2VA、FL2VA、L2VA、Full Reference 和多镜头时间线。
+- **确定性质量控制**：引用编号、配套音频、时间戳和 H3 文档结构在请求前后自动校验。
 
 ## RunningHub 注册福利
 
@@ -51,32 +44,61 @@ MiniMax H3 / Prompt Engineer
 
 ### MiniMax H3 Prompt Studio + Generate（推荐）
 
-这是新的一体化节点。它把提示词改写、结构校验以及 ComfyUI 官方的 `MiniMax H3 Image to Video` / `MiniMax H3 Reference to Video` conditioning 合并在一起。
+面向正式工作流的一体化节点。所有素材只连接到这里，节点自动完成素材编目、任务模式识别、提示词生成、结构校验和官方 H3 conditioning。
 
-主要流程：
+#### 单节点执行链
 
-1. 依据已连接素材自动判断 T2VA、I2VA、FL2VA、L2VA 或 Full Reference。
-2. 把用户输入中的 `@素材` 映射成 H3 原生 `<Picture N>`、`<Video N>`、`<Audio N>`。
-3. 用所选 AI 和模板生成、校验并按需修复提示词。
-4. 将最终提示词和同一份素材直接交给 ComfyUI 官方 H3 节点实现。
-5. 输出 `positive`、`latent`、最终提示词以及诊断信息；后续直接连接采样器。
+| 阶段 | 处理 |
+| --- | --- |
+| 素材编目 | 识别首尾帧、参考图像、参考视频、视频配套音频和独立音频 |
+| 提示词工程 | 使用所选模板、请求深度和 AI provider 生成标准 H3 prompt |
+| 引用对齐 | 将 `@素材` 转换为 H3 原生 `<Picture N>`、`<Video N>`、`<Audio N>` |
+| 质量控制 | 校验任务结构、镜头时间、引用范围与音频配对；可自动修复一次 |
+| H3 生成输入 | 调用 ComfyUI 官方 conditioning，实现同源素材、同序编号 |
+| 节点输出 | `positive`、`latent`、`formatted_prompt`、`display_prompt` 及诊断数据 |
+
+#### 快速使用
+
+1. 连接 `clip`、`vae`，需要音频时连接 `audio_vae`。
+2. 把图片、视频和音频连接到对应素材入口。
+3. 选择 AI provider、创作模板、请求深度和输出语言。
+4. 在 `user_request` 中输入 `@`，从菜单选择素材并完成创意描述。
+5. 将 `positive` 与 `latent` 直接连接后续采样流程。
+
+```text
+以 @图像1 的人物为主角，让她进入 @视频1 的场景；
+动作节奏跟随 @视频音频1，结尾产品特写保持 @图像2 的材质与标识。
+```
+
+#### `@素材` 智能引用
+
+`@` 菜单只展示当前已连接的素材，并同步显示素材类型、H3 原生标签和上游节点名称。支持关键词筛选、方向键导航以及 Enter/Tab 插入。
+
+| 输入别名 | H3 原生标签 | 素材角色 |
+| --- | --- | --- |
+| `@图像1` / `@image1` | `<Picture 1>` | 参考图像或当前模式中的关键帧 |
+| `@视频1` / `@video1` | `<Video 1>` | 参考视频 |
+| `@视频音频1` / `@video_audio1` | `<Audio N>` | 与参考视频 1 配套的 soundtrack |
+| `@音频1` / `@audio1` | `<Audio N>` | 独立参考音频 |
+
+素材编号以实际连接为准。节点会压缩 Autogrow 空位、按数字顺序重排，并依据 H3 的“视频配套音频优先、独立音频随后”规则计算真实 `<Audio N>`。不存在的引用、越界编号和孤立的视频音频会在 LLM 请求与 H3 编码前终止。
 
 #### 请求深度
 
-| `request_level` | 内容 |
-| --- | --- |
-| `Basic · 基础` | 只附加简短风格方向，请求最小 |
-| `Medium · 中度` | 增加模板专项规则以及镜头、连续性、声音和质检要求 |
-| `Full · 完整` | 增加完整的单次制作规则，覆盖节拍、分镜、视觉系统、动作、运镜、声音、文字、参考保留和最终检查 |
-
-`Full` 是适合单次 ComfyUI LLM 请求的等效完整版规则，不会包含官方 skills 中面向 Agent 的画布工具、多轮确认和文件操作步骤。完整档会明显增加上下文长度和 Token 用量。
+| `request_level` | 适用场景 | 注入规则 |
+| --- | --- | --- |
+| `Basic · 基础` | 需求清晰、快速改写 | 模板核心风格与 H3 基础规范 |
+| `Medium · 中度` | 常规成片、质量与成本平衡 | 模板专项、分镜、连续性、声音与质检 |
+| `Full · 完整` | 广告、MV、叙事短片等高控制任务 | 节拍、视觉系统、动作、运镜、文字、引用保留与最终检查 |
 
 #### 输出语言
 
-- `English · H3 native`：`display_prompt` 与正式英文 `formatted_prompt` 相同，不增加翻译请求。
-- `简体中文 · Display translation`：英文 H3 prompt 校验完成后，再调用同一 AI 生成中文阅读版 `display_prompt`，因此会增加一次 LLM 请求。
-- `formatted_prompt` 始终保留真正送入 MiniMax H3 的官方英文版本，避免中文翻译破坏字段、对齐语句和验证规则。
-- Direct 模式不调用 AI，因此不能生成中文译文。
+| 选项 | `formatted_prompt` | `display_prompt` |
+| --- | --- | --- |
+| `English · H3 native` | H3 英文执行版本 | 同一英文版本 |
+| `简体中文 · Display translation` | H3 英文执行版本 | 保留字段、时间戳和引用标签的中文阅读版本 |
+
+中文显示会增加一次翻译调用；Direct 模式仅输出英文执行版本。
 
 AI 提供方：
 
@@ -95,36 +117,21 @@ model: qwen3-vl:8b
 api_key: 留空（除非本地服务要求）
 ```
 
-本地模型必须自行支持所发送的 OpenAI Chat Completions 格式；使用图片或视频采样帧时，应选择视觉模型。
-
-RunningHub、OpenAI 或本地服务的 API Key 都可能随 ComfyUI 工作流保存在 JSON 中。分享工作流、截图或诊断包前请清空 Key；节点的输出和错误信息不会主动包含完整 Key。
-
-#### `@素材` 语法和编号安全
-
-连接素材后，在 `user_request` 文本框输入 `@` 会弹出当前可用素材。菜单同时显示别名、H3 原生标签、素材类型和上游节点名称；支持继续输入关键词筛选、方向键选择以及 Enter/Tab 插入。
-
-| 用户写法 | H3 原生标签 | 对应连接 |
-| --- | --- | --- |
-| `@图像1` / `@image1` | `<Picture 1>` | 第 1 个实际连接的 `ref_image` |
-| `@视频1` / `@video1` | `<Video 1>` | 第 1 个实际连接的 `ref_video` |
-| `@视频音频1` / `@video_audio1` | `<Audio N>` | 与第 1 个参考视频同编号的 soundtrack |
-| `@音频1` / `@audio1` | `<Audio N>` | 第 1 个独立 `ref_audio` |
-
-ComfyUI 官方 H3 节点规定音频标签按“各参考视频的配套音频在前，独立音频在后”编号。因此 `@音频1` 不一定是 `<Audio 1>`。本插件会按照素材语义自动换算真实编号，并把排序后的同一份字典交给官方节点，避免文字编号和实际 conditioning 顺序不一致。
-
-如果写了不存在的 `@图像2`、把 `ref_video_audio_2` 接到了没有 `ref_video_2` 的位置，或显式写了越界的 `<Video 3>`，节点会在产生付费 LLM 请求或开始 H3 编码前报错。
-
-Full Reference 素材和 `first_frame` / `last_frame` 属于 H3 的两条不同 conditioning 路径，不能混接。Auto 模式会明确拦截这种情况。
+使用图片或视频采样帧时请选择视觉模型。API Key 可能写入 ComfyUI workflow JSON，分享工作流前请清空。
 
 #### 可选创作模板
 
-模板下拉框包含 General、3D 动画短片、品牌宣传片、合作游戏开场、手绘实拍融合、极简产品广告、MV 字幕、纸张拼贴解说和纸艺定格。它们是根据 MiniMax-H3 仓库 `skills/` 目录中的官方工作流理念整理出的单次提示词创作方向和等效制作规则；不会逐字再分发上游 `SKILL.md`。H3 的正式字段规范仍以本仓库内两份官方 writing guide 为准。
+`General`、`3D 动画短片`、`品牌宣传片`、`合作游戏开场`、`手绘实拍融合`、`极简产品广告`、`MV 字幕`、`纸张拼贴解说`、`纸艺定格`。每个模板均提供从风格到制作规则的三档上下文。
 
-#### 素材如何交给两个模型
+#### 多模态素材通道
 
-- 提示词 AI 收到参考图片，以及每个参考视频最多 3 个均匀采样帧。
-- 完整的参考视频帧批次会传给 ComfyUI 官方 H3 节点，再由官方实现按目标长度截断，并对齐到模型要求的 `17k+5` 帧数后编码。
-- 为兼容不同 Chat Completions 服务，提示词 AI 不直接接收音频二进制，只收到音频编号、时长元数据和 `reference_context` 中的用户说明；实际音频仍完整交给 MiniMax H3。
+| 素材 | 提示词 AI | MiniMax H3 conditioning |
+| --- | --- | --- |
+| 图片 | 视觉理解与引用角色识别 | 原始 IMAGE tensor |
+| 视频 | 每条视频最多 3 个均匀采样帧 | 完整帧批次，由官方实现截断并对齐到 `17k+5` |
+| 音频 | 编号、时长与 `reference_context` 语义 | 完整音频数据 |
+
+Full Reference 与 `first_frame` / `last_frame` 使用不同的官方 conditioning 路径，Auto 模式禁止混接。
 
 ### Minimax H3 Prompt Engineer · RunningHub
 
@@ -159,6 +166,16 @@ Full Reference 素材和 `first_frame` / `last_frame` 属于 H3 的两条不同 
 没有连接该节点时，所有创意参数由用户需求和参考图片决定。
 
 ## 安装
+
+### ComfyUI Manager / Registry
+
+在 ComfyUI-Manager 中搜索 `MiniMax H3 Prompt Engineer` 并安装，或使用 Comfy CLI：
+
+```bash
+comfy node install minimax-h3-prompt-engineer
+```
+
+### 手动安装
 
 1. 下载并解压本仓库。
 2. 将整个插件目录复制到：
