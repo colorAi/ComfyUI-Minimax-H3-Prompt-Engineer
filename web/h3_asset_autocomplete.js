@@ -117,7 +117,10 @@ function collectAssetSuggestions(node) {
 function activeAtToken(input) {
     const cursor = input.selectionStart ?? input.value.length;
     const before = input.value.slice(0, cursor);
-    const match = before.match(/(?:^|[\s，。；：、,;:(（])(@[^@\s]*)$/);
+    // Chinese prose normally has no word-separating spaces, so allow an asset
+    // token after CJK characters and punctuation. Keep Latin identifier and
+    // email-like boundaries excluded to avoid triggering inside user@example.com.
+    const match = before.match(/(?:^|[^A-Za-z0-9._%+@-])(@[^@\s]*)$/);
     if (!match) return null;
     const token = match[1];
     return {

@@ -2,6 +2,12 @@
 
 All notable changes to MiniMax H3 Prompt Engineer are documented here.
 
+## 0.4.2
+
+- Fixed connected-asset autocomplete so `@` can immediately follow Chinese text without requiring whitespace.
+- Preserved email and Latin-identifier boundaries to prevent unintended autocomplete menus.
+- Updated the English and Simplified Chinese usage documentation for CJK `@asset` authoring.
+
 ## 0.4.1
 
 - Rebuilt the English and Simplified Chinese README around the one-node workflow and smart `@asset` authoring.

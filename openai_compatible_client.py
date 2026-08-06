@@ -151,7 +151,7 @@ class OpenAICompatibleClient:
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.4.1",
+            "User-Agent": "ComfyUI-Minimax-H3-Prompt-Engineer/0.4.2",
         }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"

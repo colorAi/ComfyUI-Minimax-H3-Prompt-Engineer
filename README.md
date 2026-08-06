@@ -4,7 +4,7 @@
 
 An integrated ComfyUI prompt-orchestration and conditioning node for **MiniMax H3 video generation**. Build validated H3 audiovisual prompts with RunningHub, OpenAI, or a local OpenAI-compatible model; connect each image, video, and audio asset once, then address it through `@asset` across AI interpretation, reference alignment, and official H3 generation.
 
-> Current version: `0.4.1`
+> Current version: `0.4.2`
 > Node category: `MiniMax H3 / Prompt Engineer`
 
 ## Core capabilities
@@ -61,7 +61,7 @@ Match the action rhythm to @video_audio1; preserve the material and logo from @i
 
 #### Smart `@asset` references
 
-The `@` menu lists only connected assets and displays each alias, native H3 label, asset role, and upstream node. It supports filtering, arrow-key navigation, and Enter/Tab insertion.
+The `@` menu lists only connected assets and displays each alias, native H3 label, asset role, and upstream node. In CJK text, `@` can immediately follow the preceding character without whitespace. The menu supports filtering, arrow-key navigation, and Enter/Tab insertion.
 
 | Alias | Native H3 label | Asset role |
 | --- | --- | --- |
