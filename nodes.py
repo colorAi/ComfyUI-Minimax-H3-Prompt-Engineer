@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 colorAi
 
-"""ComfyUI nodes for MiniMax H3 prompt engineering through RunningHub."""
+"""Legacy nodes plus registration for the unified MiniMax H3 prompt studio."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from typing import Any
 
@@ -477,3 +478,23 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "H3CreativePresets": "H3 Creative Presets",
     "MinimaxH3PromptEngineerRunningHub": "Minimax H3 Prompt Engineer · RunningHub",
 }
+
+
+def _has_comfy_v3() -> bool:
+    try:
+        return (
+            importlib.util.find_spec("comfy_api.latest") is not None
+            and importlib.util.find_spec("comfy_extras.nodes_minimax_h3") is not None
+        )
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+
+if _has_comfy_v3():
+    if __package__:
+        from .combined_node import MinimaxH3PromptStudio
+    else:
+        from combined_node import MinimaxH3PromptStudio
+
+    NODE_CLASS_MAPPINGS["MinimaxH3PromptStudio"] = MinimaxH3PromptStudio
+    NODE_DISPLAY_NAME_MAPPINGS["MinimaxH3PromptStudio"] = "MiniMax H3 Prompt Studio + Generate"

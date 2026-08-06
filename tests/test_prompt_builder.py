@@ -10,6 +10,7 @@ import numpy as np
 from image_utils import image_tensor_to_data_url
 from presets import CreativePresets
 from prompt_builder import MODE_FL2VA, MODE_T2VA, ReferenceImage, build_messages
+from templates import PROMPT_TEMPLATES
 
 
 class PromptBuilderTests(unittest.TestCase):
@@ -53,6 +54,19 @@ class PromptBuilderTests(unittest.TestCase):
         image = np.ones((1, 16, 16, 3), dtype=np.float32)
         data_url = image_tensor_to_data_url(image, max_side=512)
         self.assertTrue(data_url.startswith("data:image/jpeg;base64,"))
+
+    def test_selected_template_is_in_system_and_user_context(self) -> None:
+        template = "Minimalist Product Ad · 极简产品广告"
+        self.assertIn(template, PROMPT_TEMPLATES)
+        messages = build_messages(
+            mode=MODE_T2VA,
+            user_request="A perfume bottle rotates in a studio.",
+            duration=5.17,
+            template=template,
+        )
+        self.assertIn(template, messages[0]["content"])
+        self.assertIn("restrained product-ad language", messages[0]["content"])
+        self.assertIn(template, messages[1]["content"])
 
 
 if __name__ == "__main__":

@@ -13,9 +13,11 @@ from typing import Any
 try:
     from .image_utils import image_url_part
     from .presets import CreativePresets
+    from .templates import DEFAULT_TEMPLATE, template_brief
 except ImportError:  # Allows direct imports in local tests.
     from image_utils import image_url_part
     from presets import CreativePresets
+    from templates import DEFAULT_TEMPLATE, template_brief
 
 
 MODE_T2VA = "T2VA · Text to Audiovisual"
@@ -98,12 +100,13 @@ def _mode_contract(code: str, duration: float) -> str:
     return contracts[code]
 
 
-@lru_cache(maxsize=5)
-def build_system_prompt(mode: str) -> str:
+@lru_cache(maxsize=64)
+def build_system_prompt(mode: str, template: str = DEFAULT_TEMPLATE) -> str:
     code = mode_code(mode)
     guide_text = get_base_guide()
     if code == "FULL_REFERENCE":
         guide_text += "\n\n--- FULL-REFERENCE GUIDE ---\n\n" + get_reference_guide()
+    creative_direction = template_brief(template)
 
     return f"""You are Minimax H3 Prompt Engineer, a strict professional rewrite engine.
 
@@ -118,6 +121,10 @@ Non-negotiable behavior:
 6. Treat every non-Auto node preset listed by the user as a deliberate structured constraint. It overrides conflicting free-form style/camera wording, except that it may never alter exact dialogue, identity, visible text, or reference alignment.
 7. Express camera movement naturally within the appropriate shot. Never append a stack of camera labels.
 8. Check the complete answer against the required format before returning it.
+
+Selected creative template: {template}
+Creative direction: {creative_direction}
+Apply this direction only where the user's explicit request and reference-retention requirements leave room for creative judgment. It never changes the required H3 output schema.
 
 The authoritative writing guide follows:
 
@@ -136,6 +143,7 @@ def build_user_content(
     presets: CreativePresets | dict[str, Any] | None = None,
     reference_images: list[ReferenceImage] | None = None,
     image_max_side: int = 1536,
+    template: str = DEFAULT_TEMPLATE,
 ) -> str | list[dict[str, Any]]:
     code = mode_code(mode)
     presets = CreativePresets.from_value(presets)
@@ -145,6 +153,7 @@ def build_user_content(
     metadata = [
         f"Task mode: {code}",
         f"Effective target video duration: {duration:.2f} seconds",
+        f"Selected creative template: {template}",
         _mode_contract(code, duration),
     ]
     if constraints:
@@ -179,8 +188,9 @@ def build_user_content(
 
 def build_messages(**kwargs: Any) -> list[dict[str, Any]]:
     mode = kwargs["mode"]
+    template = kwargs.get("template", DEFAULT_TEMPLATE)
     return [
-        {"role": "system", "content": build_system_prompt(mode)},
+        {"role": "system", "content": build_system_prompt(mode, template)},
         {"role": "user", "content": build_user_content(**kwargs)},
     ]
 
@@ -191,6 +201,7 @@ def build_repair_messages(
     duration: float,
     previous_response: str,
     validation_report: str,
+    template: str = DEFAULT_TEMPLATE,
 ) -> list[dict[str, Any]]:
     code = mode_code(mode)
     repair_request = f"""The previous response failed deterministic MiniMax H3 format validation.
@@ -209,6 +220,6 @@ Previous response:
 Correct every listed error while preserving all scene content, dialogue, lyrics, visible text, reference identities, shot intent, and valid timestamps. Return only the corrected finished prompt document.
 """
     return [
-        {"role": "system", "content": build_system_prompt(mode)},
+        {"role": "system", "content": build_system_prompt(mode, template)},
         {"role": "user", "content": repair_request},
     ]
